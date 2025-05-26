@@ -1,152 +1,58 @@
-<!-- omit in toc -->
-# Project: Simple shell
+ Simple Shell (Tar Heel SHell - thsh)
+Welcome to thsh, a simple custom shell implemented in C as a hands-on project to explore low-level operating system concepts like process creation, environment variables, and command execution.
 
-Now that you've familiarized yourself with the shell throughout the semester, you will have the opportunity to build your own simple shell!
+This shell supports basic built-in commands, like cd and exit, and can execute external system commands like pwd and ls. It is designed to demonstrate how minimal shell interfaces work under the hood.
 
-Don't fret - when we say simple, we mean simple. The shell in this lab is merely capable of changing directories and executing system programs such as `pwd` and `ls`.
+Features
+Built-in command support: cd, exit
 
-The goal of this project is to help you learn about system-related library functions and to give you the pride of knowing that something you've been working with all semester is something that you can now build yourself.
+Execution of external programs (ls, pwd, etc.)
 
-In this project, you will
+Uses system calls: fork, exec, and wait
 
-1. Learn how the OS provides process control services that can be invoked by a user application. Specifically, your shell will use the three system calls [fork](https://man7.org/linux/man-pages/man2/fork.2.html), [exec](https://man7.org/linux/man-pages/man3/exec.3.html), and [wait](https://man7.org/linux/man-pages/man2/wait.2.html).
-2. Learn how a program can access system **environment variables** using the [getenv](https://man7.org/linux/man-pages/man3/getenv.3.html) function. In particular, we'll access the `PATH` environment variable to determine whether a program (i.e., executable object file) is located in a directory defined in `PATH`.
+Resolves executables using $PATH via getenv
 
-<details open>
-    <summary>Contents</summary>
+Command parsing with heap-allocated argv
 
-- [Background reading](#background-reading)
-- [Repo structure](#repo-structure)
-- [Input/output](#inputoutput)
-- [Understand starter code](#understand-starter-code)
-- [Notes](#notes)
-    - [create\_command](#create_command)
-    - [parse](#parse)
-    - [find\_full\_path](#find_full_path)
-    - [execute](#execute)
-    - [Valgrind](#valgrind)
-- [Submit your assignment](#submit-your-assignment)
+Basic memory safety and cleanup (Valgrind tested)
 
-</details>
-
-## Background reading
-
-1. Process control
-    * [fork](https://man7.org/linux/man-pages/man2/fork.2.html) man page
-    * [exec](https://man7.org/linux/man-pages/man3/exec.3.html) man page
-    * [wait](https://man7.org/linux/man-pages/man2/wait.2.html) man page
-    * [Process API (fork, exec, and wait)](https://uncch.instructure.com/users/9947/files/5935051?verifier=M06tlEP40KumzfyUerV3IWr45LYRNlVSqEXielyw&wrap=1) lecture slides
-    * [Process API](https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-api.pdf) OSTEP textbook
-2. Environment variables
-    * [getenv](https://man7.org/linux/man-pages/man3/getenv.3.html) man page
-3. Valgrind basics
-    * See your Lab 4 repo's README, section "Check for memory leaks with Valgrind".
-
-## Repo structure
-
-Here is a description of each file and what you are expected to do (if anything) in each:
-
-```text
+📂 Project Structure
+bash
+Copy
+Edit
 .
-|-- data
-|   |-- in0.txt
-|   |-- in1.txt
-|   |-- ...
-|   |-- out0.txt
-|   |-- out1.txt
-|   |-- ...
-|-- main.c - Important, already complete, and you should read this very brief file to understand how the shell.c functions are called
-|-- Makefile
-|-- README.md
-|-- shell.c - Important, implement most functions here
-|-- shell.h - Important
-|-- tests.cpp
-`-- tests.hpp
-```
+├── data/              # Test input/output files
+│   ├── in*.txt
+│   └── out*.txt
+├── main.c             # Entry point (do not modify)
+├── Makefile
+├── README.md
+├── shell.c            # Implement shell functionality here
+├── shell.h            # Function declarations and struct definitions
+├── tests.cpp          # GoogleTest unit tests
+└── tests.hpp
+Concepts Demonstrated
+Process Control: Creating, executing, and managing processes via fork(), exec(), and wait().
 
-As usual, you must understand all files marked "important".
+Environment Interaction: Accessing environment variables with getenv().
 
-Finally, you **may not** create additional functions or add or remove global variables. This is to prevent plagiarism and cheating. If we find that you have done this, we reserve the right to deduct points from your lab even if you passed the test cases.
+Command Resolution: Searching for executables using system $PATH.
 
-## Input/output
+Memory Management: Dynamically allocating command arguments and freeing them properly.
 
-To show you what the code does, here's how the `main` executable will work when the repo is complete:
+Error Handling: Handling invalid input and failures in command execution.
 
-```text
-learncli$ ./main  # start shell
-thsh$ pwd
-/mnt/learncli/workdir/project
-thsh$ ls
-data	     gtest_main.a  main.c    README.md	shell.o		  tests.cpp
-googletest   gtest_main.o  main.o    shell.c	test_detail.json  tests.hpp
-gtest-all.o  main	   Makefile  shell.h	tests		  tests.o
-thsh$ exit
-learncli$
-```
+References
+System Calls
+fork(2) – create a new process
 
-On the first line, we run the `main` executable. On the second line, you can tell that the new shell is running because the command prompt changes to `thsh$ ` (instead of `learncli$ `). `thsh` stands for Tar Heel SHell.
+exec(3) – replace process image
 
-Then, the user inputs `pwd` and presses Enter, causing the `pwd` command to run as it normally would. Same with `ls`. Finally, the user inputs `exit` and presses Enter, causing the shell (i.e., `main` executable) to exit. The command prompt changes back to `learncli$ `, indicating that we are back in the original shell.
+wait(2) – wait for child process
 
-All other example inputs and outputs for testing are in [data/](data). They were generated by commands like `./main < data/in0.txt > data/out0.txt`. The `in*.txt` files contain user-inputted commands (one per line), and the `out*.txt` files contain the expected stdout of the shell, including the `thsh$ ` prompts. As usual, since only `stdout` is redirected, the `out*.txt` files do not contain any user input, including the newlines from pressing Enter.
+getenv(3) – get environment variables
 
-Lastly, for testing, the `out*.txt` files assume that the `main` executable is run in a Linux environment (e.g., learncli) from the root of this repo. For example, `in1.txt` has `head -n 1 Makefile`, which prints the first line of `Makefile`. So, `out1.txt` contains the first line of this repo's Makefile. However, `Makefile` is a relative path, so this file is only guaranteed to exist if the working directory is the root of this repo. In general, if your code is correct and the above two conditions are met, all outputs will match the `out*.txt` files.
+Environment
+$PATH and external command resolution
 
-## Understand starter code
-
-If you haven't already, review the files marked "important" in [Repo structure](#repo-structure). Once done, you'll be ready to start coding, testing, and debugging.
-
-Remember to read the docstrings of each function in `shell.h`. As usual, implement the functions in the order they are listed in `shell.c` and `shell.h`. Run the unit tests incrementally as you implement each function, and if something fails, review the GTest error message and/or the source code in [tests.cpp](tests.cpp) (which also contains helpful examples for understanding what the functions are supposed to do).
-
-## Notes
-
-### create_command
-
-See the docstring of this function, if you haven't yet.
-
-The unit test for this function cannot check whether the amount of heap memory allocated for `argv` and the `char*`'s in `argv` are correct, so it does not do so. In C, it is not (easily) possible to check the number of bytes of heap memory allocated for a pointer, excluding overhead. Additionally, reading and writing to `argv` would not accomplish this goal because C allows out-of-bounds reads and writes for arrays, unlike other languages.
-
-So, please carefully read the docstring for this function and make sure that you implement it correctly. Other functions depend on it, and its unit test cannot fully confirm its correctness.
-
-### parse
-
-See the docstring, and check the unit tests in [tests.cpp](tests.cpp) for concrete examples.
-
-### find_full_path
-
-If a command is not built-in to the shell (e.g., `cd` or `exit`), its binary lives somewhere on the file system, and that is the external program that runs when the user types the command. For example,
-
-```text
-learncli$ ls
-project
-learncli$ which ls  # find full path of ls command
-/usr/bin/ls
-learncli$ /usr/bin/ls  # same output as ls because this is the same program that runs when you type ls
-project
-```
-
-External commands are simply executable programs on the file system, and you can find out where with `which`. If you `ls /usr/bin`, you'll see many of the programs you have been using this semester, such as `ls`, `clang-format`, `gcc`, etc.
-
-After the user's input has been parsed into a `command*` via `parse`, the `find_full_path` function attempts to find the full path of the program to determine which program to run, if it exists.
-
-Implementation details are given in the docstring.
-
-### execute
-
-Finally, the command is ready to be executed. Implement `execute`, and details are in its docstring.
-
-### Valgrind
-
-**Note**: Do this only after you pass all `tests.cpp` test cases. You cannot receive points for this unless all `tests.cpp` test cases pass.
-
-In addition to the `tests.cpp` unit tests, the Gradescope autograder has one additional Valgrind test case that checks for memory leaks and other memory errors. This is identical to that of Lab 4, so for details, see your Lab 4 repo's README, section "Check for memory leaks with Valgrind".
-
-We have checked our given code for memory errors, and `valgrind` does not report any definite memory leaks. So, this test case will pass if the following three conditions hold:
-
-1. All `tests.cpp` test cases pass.
-2. You implemented `cleanup` correctly in `shell.c`.
-3. All other code you wrote does not cause memory leaks.
-
-## Submit your assignment
-
-See the [instructions for assignment submission](https://github.com/Comp211-FA24/lab-00?tab=readme-ov-file#submit-your-assignment).
+Using which to trace full paths of binaries
