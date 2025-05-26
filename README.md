@@ -1,58 +1,82 @@
- Simple Shell (Tar Heel SHell - thsh)
-Welcome to thsh, a simple custom shell implemented in C as a hands-on project to explore low-level operating system concepts like process creation, environment variables, and command execution.
+# 🐚 Simple Shell
 
-This shell supports basic built-in commands, like cd and exit, and can execute external system commands like pwd and ls. It is designed to demonstrate how minimal shell interfaces work under the hood.
+This project is a simple command-line shell implemented in C. It supports basic functionality such as changing directories and executing system commands (e.g., `pwd`, `ls`, etc.). The goal was to deepen my understanding of Unix-like process control, environment variables, and how real shells like Bash operate under the hood.
 
-Features
-Built-in command support: cd, exit
+---
 
-Execution of external programs (ls, pwd, etc.)
+## 🧠 What I Learned
 
-Uses system calls: fork, exec, and wait
+- I worked directly with system calls like `fork`, `exec`, and `wait` to manage child processes and execute programs.
+- I used the `getenv` function to read environment variables like `PATH`, allowing the shell to locate executables.
+- I gained experience building and running a shell environment that can interpret user input, locate and execute programs, and handle built-in commands.
 
-Resolves executables using $PATH via getenv
+---
 
-Command parsing with heap-allocated argv
+## 🗂️ Project Structure
 
-Basic memory safety and cleanup (Valgrind tested)
-
-📂 Project Structure
-bash
-Copy
-Edit
 .
-├── data/              # Test input/output files
-│   ├── in*.txt
-│   └── out*.txt
-├── main.c             # Entry point (do not modify)
-├── Makefile
-├── README.md
-├── shell.c            # Implement shell functionality here
-├── shell.h            # Function declarations and struct definitions
-├── tests.cpp          # GoogleTest unit tests
-└── tests.hpp
-Concepts Demonstrated
-Process Control: Creating, executing, and managing processes via fork(), exec(), and wait().
+├── data/ # Input and output test cases
+├── main.c # Entry point to launch the shell (provided)
+├── shell.c # Core implementation of the shell
+├── shell.h # Header file with function declarations
+├── Makefile # Compilation instructions
+└── README.md # Project documentation
 
-Environment Interaction: Accessing environment variables with getenv().
 
-Command Resolution: Searching for executables using system $PATH.
+---
 
-Memory Management: Dynamically allocating command arguments and freeing them properly.
+## ⚙️ Features
 
-Error Handling: Handling invalid input and failures in command execution.
+- Interactive command-line interface with a custom prompt (`thsh$`)
+- Support for built-in commands like `cd` and `exit`
+- Execution of system binaries like `ls`, `pwd`, and others via `execvp`
+- Dynamic path resolution by searching through directories defined in the `PATH` environment variable
 
-References
-System Calls
-fork(2) – create a new process
+---
 
-exec(3) – replace process image
+## 🛠️ Key Implementation Details
 
-wait(2) – wait for child process
+### `create_command`
+Allocated memory for a `command*` structure and parsed input arguments accordingly.
 
-getenv(3) – get environment variables
+### `parse`
+Tokenized raw user input into commands and arguments, returning a populated command structure.
 
-Environment
-$PATH and external command resolution
+### `find_full_path`
+Searched through `PATH` directories to find the full path of an executable. If found, the shell executed the program using its full path.
 
-Using which to trace full paths of binaries
+### `execute`
+Handled both built-in command logic (`cd`, `exit`) and external commands via `fork`, `execvp`, and `waitpid`. Ensured that child processes were correctly spawned and managed.
+
+---
+
+## 📌 Notes
+
+- The shell initializes with a strong separation of parsing, command creation, path resolution, and execution for clarity and modularity.
+- Error messages and edge cases were handled gracefully to mimic real shell behavior.
+- Built-in commands were executed directly in the shell process, while external commands were forked into child processes.
+
+---
+
+## ✅ Accomplishments
+
+- Built a working shell from scratch in C
+- Gained hands-on experience with Unix process control APIs
+- Improved debugging skills and memory management (checked with Valgrind)
+- Reinforced understanding of how environment variables and executables work together
+
+---
+
+## 📸 Demo
+
+```bash
+$ ./main
+thsh$ pwd
+/home/user/projects/simple-shell
+thsh$ ls
+main.c  shell.c  shell.h  Makefile  README.md
+thsh$ cd ..
+thsh$ pwd
+/home/user/projects
+thsh$ exit
+$
